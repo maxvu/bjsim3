@@ -1,0 +1,17 @@
+{
+    "name": "maxvu/bjsim3",
+    "type": "lib",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Max Vu",
+            "email": "maxwell.vu@gmail.com"
+        }
+    ],
+    "autoload" : {
+        "psr-4" : {
+            "maxvu\\bjsim3\\" : "lib"
+        }
+    },
+    "require": {}
+}
