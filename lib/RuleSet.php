@@ -32,10 +32,10 @@ class RuleSet implements \ArrayAccess {
             'game.blackjack-payout' => 1.50,
             'dealer.s17-stand' => true,
             'dealer.insurance' => true,
-            'dealer.peek-ten' => false,
+            'dealer.peek-ten' => true,
             'dealer.peek-ace' => true,
             'dealer.wins-ties' => false,
-            'hand.surrender' => false,
+            'hand.surrender' => true,
             'hand.double.restrict' => false,
             'hand.split.unlike-tens' => true,
             'hand.split.aces-halt' => true,
@@ -43,6 +43,15 @@ class RuleSet implements \ArrayAccess {
             'hand.bet.max' => 4,
             'hand.split.max' => 3
         ];
+    }
+
+    public static function getSummaryString ( RuleSet $rules ) {
+        // x-deck, s17 Y, peek10+A,
+        $decks = $rules[ 'game.deck-count' ];
+        $s17 = $rules[ 'dealer.s17-stand' ] ? 'S17 stand' : 'S17 hit';
+        $peek10 = $rules[ 'dealer.peek-ten' ] ? 'peek ten' : '';
+        $peekAce = $rules[ 'dealer.peek-ace' ] ? 'peek ace' : '';
+        return "{$decks}-deck, $s17, $peek10, $peekAce";
     }
 
     protected $rules;

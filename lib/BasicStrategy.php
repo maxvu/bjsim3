@@ -4,128 +4,47 @@ namespace maxvu\bjsim3;
 
 class BasicStrategy implements Strategy {
 
-    static function printTable ( $table, $name = '' ) {
-        $columns = [];
-        foreach ( $table as $row ) {
-            foreach ( $row as $col => $val ) {
-                $columns[ $col ] = 1;
-            }
-        }
-        echo "$name\t";
-        foreach ( $columns as $colName => $cell )
-            echo "$colName\t";
-        echo "\n";
-        foreach ( $table as $rowLabel => $row ) {
-            echo "$rowLabel\t";
-            foreach ( $row as $cell ) {
-                echo "$cell\t";
-            }
-            echo "\n";
-        }
-    }
+    protected $rules;
+    protected $hitTable;
+    protected $standTable;
+    protected $doubleTable;
+    protected $splitTable;
 
-    const DEALEROUTCOMES_ITERATIONS = 10000;
-    const HITOUTCOMES_ITERATIONS = 10000;
-
-    public static function generate ( Table $table ) {
-
-        /*
-
-        */
-
-        $shoe = $table->getShoe()->copy();
-        $s17Stand = $table->getRules()[ 'dealer.s17-stand' ];
-        $maxPenetration = $table->getSettings()[ 'shoe.penetration' ];
-        $loseTies = $table->getRules()[ 'dealer.wins-ties' ];
-
-        /*
-
-        */
-
-        $allRanks = range( 1, 10 );
-        $allHandTotals = array_merge( [ 0 ], range( 2, 21 ) );
-        $allDealerHands = [ 0, 17, 18, 19, 20, 21 ];
-
-        $pDealer = [];
-        $evStand = [];
-        $evHitHard = [];
-        $evHitSoft = [];
-        $evSplit = [];
-
-        foreach ( $allRanks as $rank ) {
-            $pDealer[ $rank ] = [];
-            foreach ( $allDealerHands as $dealerHand ) {
-                $pDealer[ $rank ][ $dealerHand ] = 0;
-            }
-            foreach ( $allHandTotals as $handTotal ) {
-                $evStand[ $rank ][ $handTotal ] = 0;
-                $evHitHard[ $rank ][ $handTotal ] = 0;
-                $evHitSoft[ $rank ][ $handTotal ] = 0;
-            }
-            foreach ( $allRanks as $pairHandRank ) {
-                $evSplit[ $rank ][ $pairHandRank ] = 0;
-            }
-        }
-
-        $shoe->reshuffle();
-        for ( $i = 0; $i < BasicStrategy::DEALEROUTCOMES_ITERATIONS; $i++ ) {
-            $downCard = $shoe->draw();
-            $upCard = $shoe->draw();
-            $hand = new Hand([ $downCard, $upCard ]);
-            if ( $hand->is21() ) {
-                $i--;
-                continue;
-            }
-            $hand = Dealer::playHand( $hand, $s17Stand, $shoe );
-            $result = $hand->getBestValue();
-            $pDealer[ Rank::getLowValue( $upCard->getRank() ) ][ $result ]++;
-            $pDealer[ Rank::getLowValue( $downCard->getRank() ) ][ $result ]++;
-            if ( $shoe->getPenetration() >= $maxPenetration )
-                $shoe->reshuffle();
-        }
-
-        foreach ( $allRanks as $rank ) {
-            $rowTotal = 0;
-            foreach ( $allDealerHands as $dealerHand ) {
-                $rowTotal += $pDealer[ $rank ][ $dealerHand ];
-            }
-            foreach ( $allDealerHands as $dealerHand ) {
-                $pDealer[ $rank ][ $dealerHand ] /= $rowTotal;
-            }
-        }
-
-        $shoe->reshuffle();
-        foreach ( [ 17 ] as $rank ) {
-            $ev =& $evStand[ $rank ];
-            $pd =& $pDealer[ $rank ];
-            foreach ( range( 16, 21 ) as $myHand ) {
-                foreach ( [ 17, 18, 19, 20, 21 ] as $dealerHand ) {
-                    echo "rank $rank, hand $myHand, dealer $dealerHand: ";
-                    if ( $myHand > $dealerHand ) {
-                        $evStand[ $rank ][ $myHand ] += $pd[ $rank ][ $dealerHand ];
-                    } else if ( $myHand === $dealerHand ) {
-                        if ( $loseTies )
-                            $evStand[ $rank ][ $myHand ] += $pd[ $rank ][ $dealerHand ];
-                    } else {
-                        $evStand[ $rank ][ $myHand ] += $pd[ $rank ][ $dealerHand ];
-                    }
-                }
-            }
-        }
-
-        echo "=====\n\n\n\n=====\n";
-
-        BasicStrategy::printTable( $pDealer, 'pDealer' );
-        BasicStrategy::printTable( $evStand, 'evStand' );
-        // BasicStrategy::printTable( $evHitHard, 'evHitHard' );
-        // BasicStrategy::printTable( $evHitSoft, 'evHitSoft' );
-        // BasicStrategy::printTable( $evSplit, 'evSplit' );
-
-
-    }
-
-    public function __construct () {
-
+    public function __construct (
+        RuleSet $rules,
+        Settings $settings,
+        int $iterations = 1000000
+    ) {
+        $this->rules = $rules;
+        $dealerTable = BasicStrategy\DealerHandOutcomeTable::generate(
+            $rules,
+            $settings,
+            new Shoe( $rules[ 'game.deck-count' ] ),
+            $iterations
+        );
+        $this->standTable = BasicStrategy\StandValueTable::generate(
+            $dealerTable,
+            $rules
+        );
+        $this->hitTable = BasicStrategy\HitValueTable::generate(
+            $dealerTable,
+            $this->standTable,
+            $rules,
+            $settings,
+            new Shoe( $rules[ 'game.deck-count' ] )
+        );
+        $this->doubleTable = BasicStrategy\DoubleValueTable::generate(
+            $this->standTable,
+            $rules,
+            new Shoe( $rules[ 'game.deck-count' ] )
+        );
+        $this->splitTable = BasicStrategy\SplitValueTable::generate(
+            $this->hitTable,
+            $this->standTable,
+            $this->doubleTable,
+            $rules,
+            new Shoe( $rules[ 'game.deck-count' ] )
+        );
     }
 
     public function onCard ( Card $card ) {
@@ -149,5 +68,129 @@ class BasicStrategy implements Strategy {
 
     }
 
+    public function getTables () {
+        $hards = [];
+        $softs = [];
+        $splits = [];
+
+        foreach ( Rank::getAll() as $upCardRank ) {
+            $upCardLo = Rank::getLowValue( $upCardRank );
+            $hards[ $upCardLo ] = [];
+            $softs[ $upCardLo ] = [];
+            $splits[ $upCardLo ] = [];
+            foreach ( range( 4, 20 ) as $hardTotal ) {
+                $evHit = $this->hitTable->getEVHard(
+                    $upCardRank,
+                    $hardTotal
+                );
+                $evStand = $this->standTable->getEV(
+                    $upCardRank,
+                    $hardTotal
+                );
+                $evDouble = $this->doubleTable->getEVHard(
+                    $upCardRank,
+                    $hardTotal
+                );
+                if ( $evHit >= $evStand && $evHit >= $evDouble ) {
+                    if ( $evHit < -0.5 )
+                        $hards[ $upCardLo ][ $hardTotal ] = 'Rh';
+                    $hards[ $upCardLo ][ $hardTotal ] = 'H';
+                } else if ( $evStand >= $evHit && $evStand >= $evDouble ) {
+                    if ( $evStand < -0.5 )
+                        $hards[ $upCardLo ][ $hardTotal ] = 'Rs';
+                    $hards[ $upCardLo ][ $hardTotal ] = 'S';
+                } else {
+                    if ( $evStand > $evHit )
+                        $hards[ $upCardLo ][ $hardTotal ] = 'Ds';
+                    else
+                        $hards[ $upCardLo ][ $hardTotal ] = 'Dh';
+                }
+            }
+            foreach ( range( 13, 20 ) as $softTotal ) {
+                $evHit = $this->hitTable->getEVSoft(
+                    $upCardRank,
+                    $softTotal
+                );
+                $evStand = $this->standTable->getEV(
+                    $upCardRank,
+                    $softTotal
+                );
+                $evDouble = $this->doubleTable->getEVSoft(
+                    $upCardRank,
+                    $softTotal
+                );
+                if ( $evHit >= $evStand && $evHit >= $evDouble ) {
+                    if ( $evHit < -0.5 )
+                        $hards[ $upCardLo ][ $softTotal ] = 'Rh';
+                    $softs[ $upCardLo ][ $softTotal ] = 'H';
+                } else if ( $evStand >= $evHit && $evStand >= $evDouble ) {
+                    if ( $evStand < -0.5 )
+                        $softs[ $upCardLo ][ $softTotal ] = 'Rs';
+                    $softs[ $upCardLo ][ $softTotal ] = 'S';
+                } else {
+                    if ( $evStand > $evHit )
+                        $softs[ $upCardLo ][ $softTotal ] = 'Ds';
+                    else
+                        $softs[ $upCardLo ][ $softTotal ] = 'Dh';
+                }
+            }
+            foreach ( Rank::getAll() as $splitCardRank ) {
+                $originalHand = new Hand([
+                    new Card( Suit::CLUBS, $splitCardRank ),
+                    new Card( Suit::CLUBS, $splitCardRank )
+                ]);
+                $evHit = -2;
+                $evStand = -2;
+                $evDouble = -2;
+                $evSplit = -2;
+                $splitCardLo = Rank::getLowValue( $splitCardRank );
+                if ( $originalHand->isHard() ) {
+                    $evHit = $this->hitTable->getEVHard(
+                        $upCardRank,
+                        $originalHand->getBestValue()
+                    );
+                    $evDouble = $this->doubleTable->getEVHard(
+                        $upCardRank,
+                        $originalHand->getBestValue()
+                    );
+                } else {
+                    $evHit = $this->hitTable->getEVSoft(
+                        $upCardRank,
+                        $originalHand->getBestValue()
+                    );
+                    $evDouble = $this->doubleTable->getEVSoft(
+                        $upCardRank,
+                        $originalHand->getBestValue()
+                    );
+                }
+                $evStand = $this->standTable->getEV(
+                    $upCardRank,
+                    $originalHand->getBestValue()
+                );
+                $evSplit = $this->splitTable->getEV(
+                    $upCardRank,
+                    $splitCardRank
+                );
+                if ( $evHit >= max( $evStand, $evDouble, $evSplit ) ) {
+                    $splits[ $upCardLo ][ $splitCardLo ] = 'H';
+                } else if ( $evStand > max( $evHit, $evDouble, $evSplit ) ) {
+                    $splits[ $upCardLo ][ $splitCardLo ] = 'S';
+                } else if ( $evDouble > max( $evHit, $evStand, $evSplit ) ) {
+                    if ( $evStand > $evHit )
+                        $splits[ $upCardLo ][ $splitCardLo ] = 'Ds';
+                    else
+                        $splits[ $upCardLo ][ $splitCardLo ] = 'Dh';
+                } else {
+                    $splits[ $upCardLo ][ $splitCardLo ] = 'P';
+                }
+            }
+        }
+
+        return [
+            'hards' => $hards,
+            'softs' => $softs,
+            'splits' => $splits
+        ];
+    }
 
 };

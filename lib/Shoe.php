@@ -58,10 +58,10 @@ class Shoe {
 
     public function getCount () {
         $counts = [];
-        foreach ( range( 1, 10 ) as $lowValue )
-            $counts[ $lowValue ] = 0;
+        foreach ( Rank::getAll() as $rank )
+            $counts[ $rank ] = 0;
         foreach ( $this->undrawn as $card )
-            $counts[ $card->getLowValue() ]++;
+            $counts[ $card->getRank() ]++;
         return new ShoeCount( $counts );
     }
 

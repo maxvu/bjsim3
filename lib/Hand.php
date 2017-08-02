@@ -130,6 +130,10 @@ class Hand {
         return false;
     }
 
+    public function copy () {
+        return new Hand( $this->cards, $this->bets );
+    }
+
     public function __toString () {
         return '( ' . implode( ', ', $this->cards ) . ' )';
     }

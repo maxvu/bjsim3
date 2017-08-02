@@ -9,41 +9,74 @@ class ShoeCount {
     public function __construct ( $counts ) {
         $this->counts = [];
         foreach ( Rank::getAll() as $rank ) {
-            $rankLowValue = Rank::getLowValue( $rank );
-            $this->counts[ $rankLowValue ] = $counts[ $rankLowValue ];
+            if ( !isset( $counts[ $rank ] ) )
+                throw new \Exception( "ShoeCount initialization incomplete." );
         }
-        if ( sizeof( array_keys( $this->counts ) ) !== 10 )
-            throw new \Exception( "Invalid shoe count." );
+        foreach ( $counts as $rank => $count ) {
+            if ( !Rank::isValid( $rank ) )
+                throw new \Exception(
+                    "Invalid rank in ShoeCount initialization."
+                );
+            if ( $count < 0 )
+                throw new \Exception(
+                    "Negative count in ShoeCount initialization."
+                );
+        }
+        $this->counts = $counts;
     }
 
-    public function getCount ( $rankLo ) {
-        if ( $rankLo < 1 || $rankLo > 10 || !is_int( $rankLo ) )
-            throw new \Exception( "Invalid rank low-value: $rankLo." );
-        return $this->counts[ $rankLo ];
+    public function getCountByRank ( $rank ) {
+        if ( !Rank::isValid( $rank ) )
+            throw new \Exception( "Invalid rank: $rank." );
+        return $this->counts[ $rank ];
     }
 
-    public function getIncidence ( $rankLo ) {
-        $totalSize = 0;
+    public function getIncidenceByRank ( $rank ) {
+        if ( !Rank::isValid( $rank ) )
+            throw new \Exception( "Invalid rank: $rank." );
+        $total = 0;
         foreach ( $this->counts as $count )
-            $totalSize += $count;
-        return $this->counts[ $rankLo ] / $totalSize;
+            $total += $count;
+        return $this->counts[ $rank ] / $total;
     }
 
-    public function add ( $rankLo ) {
-        if ( $rankLo < 1 || $rankLo > 10 || !is_int( $rankLo ) )
-            throw new \Exception( "Invalid rank low-value: $rankLo." );
+    public function getIncidencesByRank ( $ranks ) {
+        $p = 0;
+        foreach ( $ranks as $rank )
+            $p += $this->getIncidence( $rank );
+        return $p;
+    }
+
+    public function getIncidenceByValue ( $loValue ) : float {
+        if ( !in_array( $loValue, range( 1, 11 ) ) )
+            throw new \Exception( "Invalid low value: $loValue." );
+        $incidence = 0;
+        $total = 0;
+        foreach ( $this->counts as $rank => $count ) {
+            if ( Rank::getLowValue( $rank ) === $loValue )
+                $incidence += $count;
+            $total += $count;
+        }
+        return $incidence / $total;
+    }
+
+    public function add ( $rank ) : ShoeCount {
+        if ( !Rank::isValid( $rank ) )
+            throw new \Exception( "Invalid rank: $rank." );
+        $rankLo = Rank::getLowValue( $rank );
         $this->counts[ $rankLo ]++;
         return $this;
     }
 
-    public function sub ( $rankLo ) {
-        if ( $rankLo < 1 || $rankLo > 10 || !is_int( $rankLo ) )
-            throw new \Exception( "Invalid rank low-value: $rankLo." );
+    public function sub ( $rank ) : ShoeCount {
+        if ( !Rank::isValid( $rank ) )
+            throw new \Exception( "Invalid rank: $rank." );
+        $rankLo = Rank::getLowValue( $rank );
         $this->counts[ $rankLo ]++;
         return $this;
     }
 
-    public function copy () {
+    public function copy () : ShoeCount {
         return new ShoeCount( $this->counts );
     }
 

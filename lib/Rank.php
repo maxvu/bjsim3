@@ -36,6 +36,30 @@ abstract class Rank {
         ];
     }
 
+    public static function getTenCards () {
+        return [
+            Rank::TEN,
+            Rank::JACK,
+            Rank::QUEEN,
+            Rank::KING
+        ];
+    }
+
+    public static function getEachValue () {
+        return [
+            Rank::ACE,
+            Rank::TWO,
+            Rank::THREE,
+            Rank::FOUR,
+            Rank::FIVE,
+            Rank::SIX,
+            Rank::SEVEN,
+            Rank::EIGHT,
+            Rank::NINE,
+            Rank::TEN
+        ];
+    }
+
     public static function toString ( $rank ) {
         switch ( $rank ) {
             case Rank::ACE:   return 'A';  break;

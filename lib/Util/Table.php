@@ -49,6 +49,18 @@ class Table {
         return $table;
     }
 
+    public function transpose () {
+        $newTable = [];
+        foreach ( $this->getColumnNames() as $colName )
+            $newTable[ $colName ] = [];
+        foreach ( $this->table as $rowName => $row ) {
+            foreach ( $row as $colName => $cell ) {
+                $newTable[ $colName ][ $rowName ] = $cell;
+            }
+        }
+        return new Table( $newTable );
+    }
+
     public function __toString () {
         return $this->toCSV();
     }

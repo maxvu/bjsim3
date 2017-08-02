@@ -6,14 +6,14 @@ use \maxvu\bjsim3\RuleSet as RuleSet;
 
 class StandValueTable {
 
-    public static function generateMonteCarlo (
+    public static function generate (
         DealerHandOutcomeTable $dealerTable,
         RuleSet $rules
     ) {
 
         $evStand = [];
         $loseTies = $rules[ 'dealer.wins-ties' ];
-        $handTotals = range( 4, 21 );
+        $handTotals = range( 16, 21 );
         $allRanks = array_map( function ( $rank ) {
             return Rank::getLowValue( $rank );
         }, Rank::getAll() );
@@ -60,6 +60,17 @@ class StandValueTable {
 
     public function getTable () {
         return $this->table;
+    }
+
+    public function getEV ( $upCardRank, $handTotal ) {
+        if ( !Rank::isValid( $upCardRank ) )
+            throw new \Exception( "Invalid rank: $upCardRank." );
+        $upCardLo = Rank::getLowValue( $upCardRank );
+        if ( $handTotal < 16 )
+            $handTotal = 16;
+        if ( !in_array( $handTotal, range( 16, 21 ) ) )
+            throw new \Exception( "Invalid hand total: $handTotal." );
+        return $this->table[ $upCardLo ][ $handTotal ];
     }
 
 };
