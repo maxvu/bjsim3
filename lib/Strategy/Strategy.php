@@ -1,6 +1,12 @@
 <?php
 
-namespace maxvu\bjsim3;
+namespace maxvu\bjsim3\Strategy;
+
+use \maxvu\bjsim3\Card as Card;
+use \maxvu\bjsim3\Turn as Turn;
+use \maxvu\bjsim3\Table as Table;
+use \maxvu\bjsim3\Hand as Hand;
+use \maxvu\bjsim3\HandOption as HandOption;
 
 interface Strategy {
 

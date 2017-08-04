@@ -2,6 +2,7 @@
 namespace maxvu\bjsim3;
 use \maxvu\bjsim3\Util\Table as DataTable;
 use \maxvu\bjsim3\Report\ReadoutReport as ReadoutReport;
+use \maxvu\bjsim3\Strategy\BasicStrategy\BasicStrategy as BasicStrategy;
 require( 'vendor/autoload.php' );
 
 $rules = new RuleSet();

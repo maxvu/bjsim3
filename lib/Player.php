@@ -11,7 +11,7 @@ class Player {
     public function __construct (
         string $name,
         float $initBank,
-        Strategy $strategy
+        Strategy\Strategy $strategy
     ) {
         $this->name = $name;
         $this->bankroll = new Amount( $initBank );

@@ -1,6 +1,6 @@
 <?php
 
-namespace maxvu\bjsim3\BasicStrategy;
+namespace maxvu\bjsim3\Strategy\BasicStrategy;
 use \maxvu\bjsim3\Rank as Rank;
 use \maxvu\bjsim3\Hand as Hand;
 use \maxvu\bjsim3\Dealer as Dealer;

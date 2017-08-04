@@ -1,8 +1,19 @@
 <?php
 
-namespace maxvu\bjsim3;
+namespace maxvu\bjsim3\Strategy\BasicStrategy;
 
-class BasicStrategy implements Strategy {
+use \maxvu\bjsim3\Card as Card;
+use \maxvu\bjsim3\Hand as Hand;
+use \maxvu\bjsim3\Shoe as Shoe;
+use \maxvu\bjsim3\RuleSet as RuleSet;
+use \maxvu\bjsim3\Settings as Settings;
+use \maxvu\bjsim3\HandOption as HandOption;
+use \maxvu\bjsim3\Turn as Turn;
+use \maxvu\bjsim3\Rank as Rank;
+use \maxvu\bjsim3\HandDecision as HandDecision;
+use \maxvu\bjsim3\Table as Table;
+
+class BasicStrategy implements \maxvu\bjsim3\Strategy\Strategy {
 
     protected $rules;
     protected $hitTable;
@@ -17,29 +28,29 @@ class BasicStrategy implements Strategy {
         int $iterations = 1000000
     ) {
         $this->rules = $rules;
-        $dealerTable = BasicStrategy\DealerHandOutcomeTable::generate(
+        $dealerTable = DealerHandOutcomeTable::generate(
             $rules,
             $settings,
             new Shoe( $rules[ 'game.deck-count' ] ),
             $iterations
         );
-        $this->standTable = BasicStrategy\StandValueTable::generate(
+        $this->standTable = StandValueTable::generate(
             $dealerTable,
             $rules
         );
-        $this->hitTable = BasicStrategy\HitValueTable::generate(
+        $this->hitTable = HitValueTable::generate(
             $dealerTable,
             $this->standTable,
             $rules,
             $settings,
             new Shoe( $rules[ 'game.deck-count' ] )
         );
-        $this->doubleTable = BasicStrategy\DoubleValueTable::generate(
+        $this->doubleTable = DoubleValueTable::generate(
             $this->standTable,
             $rules,
             new Shoe( $rules[ 'game.deck-count' ] )
         );
-        $this->splitTable = BasicStrategy\SplitValueTable::generate(
+        $this->splitTable = SplitValueTable::generate(
             $this->hitTable,
             $this->standTable,
             $this->doubleTable,
