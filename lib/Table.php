@@ -2,28 +2,28 @@
 
 namespace maxvu\bjsim3;
 
+use maxvu\bjsim3\Report\AggregateReport as AggregateReport;
+
 class Table {
 
     protected $rules;
     protected $settings;
     protected $shoe;
     protected $players;
-    protected $log;
+    protected $reports;
 
     // TODO: dealer draws but doesn't notify player strategies
 
     public function __construct (
         RuleSet $rules,
         Settings $settings,
-        array $players
+        array $players = []
     ) {
         $this->rules = $rules;
         $this->settings = $settings;
         $this->shoe = new Shoe( $this->rules[ 'game.deck-count' ] );
         $this->players = $players;
-
-        if ( !sizeof( $this->players ) )
-            throw new \Exception( "No players given to Table." );
+        $this->reports = new AggregateReport;
     }
 
     public function getRules () {
@@ -34,8 +34,37 @@ class Table {
         return $this->settings;
     }
 
-    public function getShoe () {
+    public function & getShoe () {
         return $this->shoe;
+    }
+
+    public function shouldShuffle () {
+        $maxPenetration = $this->settings[ 'shoe.penetration' ];
+        return $this->shoe->getPenetration() > $maxPenetration;
+    }
+
+    public function playRound () {
+        if ( !sizeof( $this->players ) )
+            throw new \Exception( "No players given to Table." );
+        return (new Round( $this ))->play();
+    }
+
+    public function addPlayer ( Player $player ) {
+        $this->players[] = $player;
+        return $this;
+    }
+
+    public function getPlayers () {
+        return $this->players;
+    }
+
+    public function addReport ( Report $report ) {
+        $this->reports->addReport( $report );
+        return $this;
+    }
+
+    public function & getReport () {
+        return $this->reports;
     }
 
 };

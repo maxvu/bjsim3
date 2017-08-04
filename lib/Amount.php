@@ -4,10 +4,27 @@ namespace maxvu\bjsim3;
 
 class Amount {
 
-    protected $amount;
+    public static function convert ( $amount ) {
+        if ( $amount === null )
+            return new Amount( 0.0 );
+        if ( is_numeric( $amount ) )
+            return new Amount( floatval( $amount ) );
+        else if ( is_a( $amount, 'maxvu\bjsim3\Amount' ) )
+            return $amount;
+        else {
+            print_r( $amount );
+            throw new \Exception( "Can't convert $amount into Amount." );
+        }
+    }
 
-    public function __construct ( float $amt, float $round = 0.5 ) {
-        $this->amount = $amt - fmod( $amt, $round );
+    protected $amount;
+    protected $round;
+
+    public function __construct ( float $amt, $round = 0.5 ) {
+        if ( $round > 0 )
+            $this->amount = $amt - fmod( $amt, $round );
+        else
+            $this->amount = $amt;
     }
 
     public function isZero () {
@@ -18,26 +35,44 @@ class Amount {
         return $this->amount;
     }
 
-    public function add ( Amount $other ) {
-        return Amount( $this->amount + $other->amount, $this->round );
+    public function add ( $other ) {
+        $other = Amount::convert( $other );
+        return new Amount( $this->amount + $other->amount, $this->round );
     }
 
-    public function sub ( Amount $other ) {
-        return Amount( $this->amount - $other->amount, $this->round );
+    public function sub ( $other ) {
+        $other = Amount::convert( $other );
+        return new Amount( $this->amount - $other->amount, $this->round );
     }
 
-    public function mul ( Amount $other ) {
-        return Amount( $this->amount * $other->amount, $this->round );
+    public function mul ( $other ) {
+        $other = Amount::convert( $other );
+        return new Amount( $this->amount * $other->amount, $this->round );
     }
 
-    public function div ( Amount $other ) {
-        return Amount( $this->amount / $other->amount, $this->round );
+    public function div ( $other ) {
+        $other = Amount::convert( $other );
+        return new Amount( $this->amount / $other->amount, $this->round );
+    }
+
+    public function ge ( $other ) {
+        $other = Amount::convert( $other );
+        return $this->amount >= $other->amount;
+    }
+
+    public function gt ( $other ) {
+        $other = Amount::convert( $other );
+        return $this->amount > $other->amount;
     }
 
     public function giveTo ( Amount &$recip ) {
         $recip->add( $this->amount );
         $this->amount = 0.0;
         return $this;
+    }
+
+    public function __toString () {
+        return strval( $this->amount );
     }
 
 };

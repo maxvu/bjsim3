@@ -32,5 +32,9 @@ class Player {
         return $this;
     }
 
+    public function canAfford ( Amount $bet ) {
+        return $this->bankroll->ge( $bet );
+    }
+
 
 };

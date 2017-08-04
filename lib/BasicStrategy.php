@@ -9,6 +9,7 @@ class BasicStrategy implements Strategy {
     protected $standTable;
     protected $doubleTable;
     protected $splitTable;
+    protected $identifier;
 
     public function __construct (
         RuleSet $rules,
@@ -45,6 +46,7 @@ class BasicStrategy implements Strategy {
             $rules,
             new Shoe( $rules[ 'game.deck-count' ] )
         );
+        $this->identifer = "basic-strategy-i{$iterations}";
     }
 
     public function onCard ( Card $card ) {
@@ -56,16 +58,20 @@ class BasicStrategy implements Strategy {
     }
 
 
-    public function decideHand ( Round $round ) {
-
+    public function decideHand ( HandOption $options, Hand $hand ) {
+        if ( $options->canSplit() )
+            return HandDecision::SPLIT;
+        if ( $options->canDouble() )
+            return HandDecision::DOUBLEDOWN;
+        return rand( 0, 1 ) ? HandDecision::STAND : HandDecision::HIT;
     }
 
-    public function decideBet ( $table ) {
-
+    public function decideBet ( Table $table ) {
+        return $table->getSettings()[ 'bet.min' ];
     }
 
-    public function decideInsurance ( $hand, $upCard ) {
-
+    public function decideInsurance ( Turn $turn, Card $upCard ) {
+        return new Amount( rand( 0, 1 ) ? 1.0 : 0.0 );
     }
 
     public function getTables () {
@@ -191,6 +197,10 @@ class BasicStrategy implements Strategy {
             'softs' => $softs,
             'splits' => $splits
         ];
+    }
+
+    public function getIdentifier () : string {
+        return $this->identifer;
     }
 
 };

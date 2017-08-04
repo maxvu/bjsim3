@@ -4,29 +4,30 @@ namespace maxvu\bjsim3;
 
 class HandOption {
 
-    protected $mask;
+    protected $canDouble;
+    protected $canSplit;
+    protected $canSurrender;
 
     public function __construct (
-        boolean $canDouble,
-        boolean $canSplit,
-        boolean $canSurrender
+        bool $canDouble,
+        bool $canSplit,
+        bool $canSurrender
     ) {
-        $mask = HandDecision::STAND | HandDecision::HIT;
-        if ( $canDouble ) $mask |= HandDecision::DOUBLEDOWN;
-        if ( $canSplit ) $mask |= HandDecision::SPLIT;
-        if ( $canSurrender ) $mask |= HandDecision::SURRENDER;
+        $this->canDouble = $canDouble;
+        $this->canSplit = $canSplit;
+        $this->canSurrender = $canSurrender;
     }
 
     public function canDouble () {
-        return $this->mask & HandDecision::DOUBLEDOWN;
+        return $this->canDouble;
     }
 
     public function canSplit () {
-        return $this->mask & HandDecision::DOUBLEDOWN;
+        return $this->canSplit;
     }
 
     public function canSurrender () {
-        return $this->mask & HandDecision::DOUBLEDOWN;
+        return $this->canSurrender;
     }
 
 };

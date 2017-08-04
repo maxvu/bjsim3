@@ -9,15 +9,24 @@ class Turn {
     protected $closedHands;
     protected $insuranceBet;
 
-    public function __construct ( Player & $player ) {
+    public function __construct ( Player & $player, Amount $initialBet ) {
         $this->player = $player;
-        $this->openHands = [];
+        $this->openHands = [ new Hand( [], [ $initialBet ] ) ];
         $this->closedHands = [];
-        $this->insuranceBet = Amount( 0.0 );
+        $this->insuranceBet = new Amount( 0.0 );
     }
 
-    public function &getInsurance () {
+    public function & getPlayer () {
+        return $this->player;
+    }
+
+    public function getInsurance () {
         return $this->insuranceBet;
+    }
+
+    public function setInsurance ( Amount $insurance ) {
+        $this->insuranceBet = $insurance;
+        return $this;
     }
 
     public function pushHand ( Hand $hand ) {
@@ -29,7 +38,7 @@ class Turn {
         return sizeof( $this->openHands ) === 0;
     }
 
-    public function getHand () {
+    public function & getHand () {
         if ( $this->isOver() )
             return null;
         return $this->openHands[ sizeof( $this->openHands ) - 1 ];
@@ -39,8 +48,20 @@ class Turn {
         if ( $this->isOver() )
             throw new \Exception( "No hands to split!" );
         $originalHand = array_pop( $this->openHands );
-        array_push( $this->openHands( $originalHand->pop(), $a ) );
-        array_push( $this->openHands( $originalHand->pop(), $b ) );
+        array_push(
+            $this->openHands,
+            new Hand(
+                [ $originalHand->pop(), $a ],
+                $originalHand->getBets()
+            )
+        );
+        array_push(
+            $this->openHands,
+            new Hand(
+                [ $originalHand->pop(), $b ],
+                $originalHand->getBets()
+            )
+        );
         return $this;
     }
 
@@ -48,6 +69,10 @@ class Turn {
         if ( !$this->isOver() )
             array_push( $this->closedHands, array_pop( $this->openHands ) );
         return $this;
+    }
+
+    public function getOpenHands () {
+        return $this->openHands;
     }
 
     public function getAllHands () {

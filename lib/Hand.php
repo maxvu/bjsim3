@@ -36,7 +36,11 @@ class Hand {
         return $this->cards;
     }
 
-    public function getBets () {
+    public function getSize () {
+        return sizeof( $this->cards );
+    }
+
+    public function & getBets () {
         return $this->bets;
     }
 
@@ -103,7 +107,9 @@ class Hand {
     }
 
     public function isSoft () {
-        return $this->getHighValue() != $this->getLowValue();
+        $hi = $this->getHighValue();
+        $lo = $this->getLowValue();
+        return $hi !== $lo && $hi < 21;
     }
 
     public function isHard () {
@@ -118,12 +124,16 @@ class Hand {
         return $this->getBestValue() === 21;
     }
 
-    public function isPair ( $allTensEquivalent = false ) {
-        if ( sizeof( $this->openHands ) !== 2 )
+    public function isBlackjack () {
+        return sizeof( $this->cards ) === 2 && $this->is21();
+    }
+
+    public function isPair ( $allTensEquivalent = true ) {
+        if ( sizeof( $this->cards ) !== 2 )
             return false;
-        $a = $this->openHands[ 0 ];
-        $b = $this->openHands[ 1 ];
-        if ( $a->getRank() == $b->getRank() )
+        $a = $this->cards[ 0 ];
+        $b = $this->cards[ 1 ];
+        if ( $a->getRank() === $b->getRank() )
             return true;
         if ( $allTensEquivalent && $a->isTenCard() && $b->isTenCard() )
             return true;
