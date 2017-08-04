@@ -125,7 +125,11 @@ class Hand {
     }
 
     public function isBlackjack () {
-        return sizeof( $this->cards ) === 2 && $this->is21();
+        return $this->isFirstPlay() && $this->is21();
+    }
+
+    public function isFirstPlay () {
+        return sizeof( $this->cards ) === 2;
     }
 
     public function isPair ( $allTensEquivalent = true ) {

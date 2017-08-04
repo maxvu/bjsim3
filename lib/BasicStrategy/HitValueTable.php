@@ -3,6 +3,7 @@
 namespace maxvu\bjsim3\BasicStrategy;
 use \maxvu\bjsim3\Rank as Rank;
 use \maxvu\bjsim3\Hand as Hand;
+use \maxvu\bjsim3\Card as Card;
 use \maxvu\bjsim3\Dealer as Dealer;
 use \maxvu\bjsim3\Shoe as Shoe;
 use \maxvu\bjsim3\RuleSet as RuleSet;
@@ -184,7 +185,7 @@ class HitValueTable {
 
     public function getEV ( Card $upCard, Hand $playerHand ) {
         $upCardLo = $upCard->getLowValue();
-        $handTotal = $playerHand->getHighValue();
+        $handTotal = $playerHand->getBestValue();
         if ( $playerHand->isSoft() ) {
             return $this->evHitSoft[ $upCardLo ][ $handTotal ];
         } else {

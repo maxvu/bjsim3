@@ -53,8 +53,8 @@ class Round {
 
     public function play () {
         if ( $this->table->shouldShuffle() ) {
-            $this->table->getReport()->onShuffle();
-            $this->table->reshuffle();
+            $this->table->getReport()->onShuffle( $this );
+            $this->table->getShoe()->reshuffle();
         }
         $this->table->getReport()->onRoundBegin( $this );
         $this->solicitBets();
@@ -84,7 +84,9 @@ class Round {
                 $this->table->getReport()->onPeek( false );
             }
         }
-        $this->playHands();
+        foreach ( $this->turns as $turn ) {
+            $this->playTurn( $turn );
+        }
         if ( !$this->allPlayersBust() ) {
             $this->playDealerHand();
         }
@@ -207,73 +209,86 @@ class Round {
         return new HandOption( $canDouble, $canSplit, $canSurrender );
     }
 
-    public function playHands () {
-        foreach ( $this->turns as $turn ) {
-            if ( $turn->getHand()->isBlackjack() )
-                continue;
+    public function playTurn ( Turn $turn ) {
+        $this->table->getReport()->onTurnBegin( $this, $turn );
+        if ( $turn->getHand()->isBlackjack() ) {
             $this->table->getReport()->onHandBegin(
                 $this,
                 $turn->getPlayer(),
                 $turn->getHand()
             );
-            while ( !$turn->isOver() && !$turn->getHand()->isBust() ) {
-                $handOptions = $this->getHandOptions( $turn );
-                $decision = $turn->getPlayer()->getStrategy()->decideHand(
-                    $handOptions,
-                    $turn->getHand()
-                );
-                if ( !HandDecision::isValid( $decision ) )
-                    throw new \Exception( "Invalid HandDecision: $decision" );
-                $initialBet = $turn->getHand()->getBets()[ 0 ] ?? null;
-                if ( $decision === HandDecision::HIT ) {
-                    $turn->getHand()->push( $this->dealCard() );
-                } else if ( $decision === HandDecision::DOUBLEDOWN ) {
-                    if ( !$handOptions->canDouble() )
-                        throw new \Exception( "Illegal double attempted." );
-                    if ( !$turn->getPlayer()->canAfford( $initialBet ) )
-                        throw new \Exception( "NSF enough to double down." );
-                    $turn->getPlayer()->take( $initialBet );
-                    $turn->getHand()->addBet( $initialBet );
-                    $this->table->getReport()->onBetPlace(
-                        $this,
-                        $turn->getPlayer(),
-                        $initialBet
-                    );
-                    $turn->getHand()->push( $this->dealCard() );
-                } else if ( $decision === HandDecision::SPLIT ) {
-                    if ( !$handOptions->canSplit() )
-                        throw new \Exception( "Illegal split attempted." );
-                    if ( !$turn->getPlayer()->canAfford( $initialBet ) )
-                        throw new \Exception( "NSF enough to split." );
-                    $turn->getPlayer()->take( $initialBet );
-                    $turn->splitHand(
-                        $this->dealCard(),
-                        $this->dealCard()
-                    );
-                } else if ( $decision === HandDecision::SURRENDER ) {
-                    if ( !$handOptions->canSurrender() )
-                        throw new \Exception( "Illegal surrender attempted." );
-                    $turn->getPlayer()->give( $initialBet->div(
-                        new Amount( 2.0 )
-                    ) );
-                }
-                $this->table->getReport()->onHandPlay(
+            return $this;
+        }
+        while ( !$turn->isOver() ) {
+            $hand = $turn->getHand();
+            $handOptions = $this->getHandOptions( $turn );
+            $decision = $turn->getPlayer()->getStrategy()->decideHand(
+                $handOptions,
+                $turn->getHand(),
+                $this->getUpCard()
+            );
+            if ( $hand->isFirstPlay() ) {
+                $this->table->getReport()->onHandBegin(
                     $this,
                     $turn->getPlayer(),
-                    $turn->getHand(),
-                    $decision
+                    $turn->getHand()
                 );
+            }
+            if ( !HandDecision::isValid( $decision ) )
+                throw new \Exception( "Invalid HandDecision: $decision" );
+            $initialBet = $turn->getHand()->getBets()[ 0 ] ?? null;
+            if ( $decision === HandDecision::HIT ) {
+                $turn->getHand()->push( $this->dealCard() );
+            } else if ( $decision === HandDecision::DOUBLEDOWN ) {
+                if ( !$handOptions->canDouble() )
+                    throw new \Exception( "Illegal double attempted." );
+                if ( !$turn->getPlayer()->canAfford( $initialBet ) )
+                    throw new \Exception( "NSF enough to double down." );
+                $turn->getPlayer()->take( $initialBet );
+                $turn->getHand()->addBet( $initialBet );
+                $this->table->getReport()->onBetPlace(
+                    $this,
+                    $turn->getPlayer(),
+                    $initialBet
+                );
+                $turn->getHand()->push( $this->dealCard() );
+            } else if ( $decision === HandDecision::SPLIT ) {
+                if ( !$handOptions->canSplit() )
+                    throw new \Exception( "Illegal split attempted." );
+                if ( !$turn->getPlayer()->canAfford( $initialBet ) )
+                    throw new \Exception( "NSF enough to split." );
+                $turn->getPlayer()->take( $initialBet );
+                $this->table->getReport()->onBetPlace(
+                    $this,
+                    $turn->getPlayer(),
+                    $initialBet
+                );
+                $turn->splitHand(
+                    $this->dealCard(),
+                    $this->dealCard()
+                );
+            } else if ( $decision === HandDecision::SURRENDER ) {
+                if ( !$handOptions->canSurrender() )
+                    throw new \Exception( "Illegal surrender attempted." );
+                $turn->getPlayer()->give( $initialBet->div(
+                    new Amount( 2.0 )
+                ) );
+            }
+            $this->table->getReport()->onHandPlay(
+                $this,
+                $turn->getPlayer(),
+                $turn->getHand(),
+                $decision
+            );
+            if (
+                $decision === HandDecision::STAND ||
+                $decision === HandDecision::SURRENDER ||
+                $hand->isBust()
+            ) {
                 $turn->nextHand();
-                if ( !$turn->isOver() ) {
-                    $this->table->getReport()->onHandBegin(
-                        $this,
-                        $turn->getPlayer(),
-                        $turn->getHand()
-                    );
-                }
             }
         }
-        return $this;
+        $this->table->getReport()->onTurnEnd( $this, $turn );
     }
 
     public function playDealerHand () {
@@ -317,6 +332,12 @@ class Round {
                 if ( $hand->isBlackjack() ) {
                     $payout = $bet->mul( $blackjackPayout )->add( $bet );
                     $player->give( $payout );
+                    $this->table->getReport()->onBetPayout(
+                        $this,
+                        $player,
+                        $bet,
+                        $payout
+                    );
                     continue;
                 }
                 $dealerScore = $this->dealerHand->getBestValue();

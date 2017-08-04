@@ -18,21 +18,35 @@ $table = new Table(
 $basicStrategy = new BasicStrategy( $rules, $settings, 1000 );
 
 $playerA = new Player(
-    "DUMMY-A",
+    "BASIC-A",
     100000.00,
     $basicStrategy
 );
 
 $playerB = new Player(
-    "DUMMY-B",
+    "BASIC-B",
+    100000.00,
+    $basicStrategy
+);
+
+$playerC = new Player(
+    "BASIC-C",
+    100000.00,
+    $basicStrategy
+);
+
+$playerD = new Player(
+    "BASIC-D",
     100000.00,
     $basicStrategy
 );
 
 $table->addPlayer( $playerA );
 $table->addPlayer( $playerB );
+$table->addPlayer( $playerC );
+$table->addPlayer( $playerD );
 $table->addReport( new ReadoutReport() );
 
-for ( $i = 0; $i < 10; $i++ ) {
+for ( $i = 0; $i < 20; $i++ ) {
     $table->playRound();
 }

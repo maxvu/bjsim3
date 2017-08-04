@@ -58,12 +58,71 @@ class BasicStrategy implements Strategy {
     }
 
 
-    public function decideHand ( HandOption $options, Hand $hand ) {
-        if ( $options->canSplit() )
-            return HandDecision::SPLIT;
-        if ( $options->canDouble() )
-            return HandDecision::DOUBLEDOWN;
-        return rand( 0, 1 ) ? HandDecision::STAND : HandDecision::HIT;
+    public function decideHand (
+        HandOption $options,
+        Hand $hand,
+        Card $upCard
+    ) {
+        return $this->getBestOption( $options, $hand, $upCard );
+    }
+
+    public function getBestOption (
+        HandOption $options,
+        Hand $hand,
+        Card $upCard
+    ) {
+        $candidates = [
+            [
+                HandDecision::HIT,
+                $this->hitTable->getEV(
+                   $upCard,
+                   $hand
+               )
+            ],
+            [
+                HandDecision::STAND,
+                $this->standTable->getEV(
+                    $upCard->getRank(),
+                    $hand->getBestValue()
+                )
+            ]
+        ];
+        if ( $options->canDouble() ) {
+            $candidates[] = [
+                HandDecision::DOUBLEDOWN,
+                $hand->isHard()
+                    ? $this->doubleTable->getEVHard(
+                        $upCard->getRank(),
+                        $hand->getBestValue()
+                    )
+                    : $this->doubleTable->getEVSoft(
+                        $upCard->getRank(),
+                        $hand->getBestValue()
+                    )
+            ];
+        }
+        if ( $options->canSplit() ) {
+            $candidates[] = [
+                HandDecision::SPLIT,
+                $this->splitTable->getEV(
+                    $upCard->getRank(),
+                    $hand->getCards()[ 0 ]->getRank()
+                )
+            ];
+        }
+        if ( $options->canSurrender() ) {
+            $candidates[] = [
+                HandDecision::SURRENDER,
+                -0.5
+            ];
+        }
+        usort( $candidates, function ( $a, $b ) {
+            list( $optA, $evA ) = $a;
+            list( $optB, $evB ) = $b;
+            return $evA <=> $evB;
+        } );
+        list( $bestOption, $ev ) = array_pop( $candidates );
+        return $bestOption;
     }
 
     public function decideBet ( Table $table ) {
@@ -71,7 +130,7 @@ class BasicStrategy implements Strategy {
     }
 
     public function decideInsurance ( Turn $turn, Card $upCard ) {
-        return new Amount( rand( 0, 1 ) ? 1.0 : 0.0 );
+        return null;
     }
 
     public function getTables () {

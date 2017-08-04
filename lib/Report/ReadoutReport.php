@@ -4,7 +4,8 @@ namespace maxvu\bjsim3\Report;
 
 use \maxvu\bjsim3\Amount as Amount;
 use \maxvu\bjsim3\Hand as Hand;
-use \maxvu\bjsim3urn as Turn;
+use \maxvu\bjsim3\Turn as Turn;
+use \maxvu\bjsim3\Rank as Rank;
 use \maxvu\bjsim3\Round as Round;
 use \maxvu\bjsim3\Player as Player;
 use \maxvu\bjsim3\HandDecision as HandDecision;
@@ -16,6 +17,10 @@ class ReadoutReport extends \maxvu\bjsim3\Report {
             return 'blackjack';
         if ( $hand->isBust() )
             return 'bust';
+        if ( $hand->isPair( false ) )
+            return 'a pair of ' . Rank::toString(
+                $hand->getCards()[ 0 ]->getRank()
+            ) . 's: ' . $hand;
         return sprintf(
             "%s%d %s",
             $hand->isSoft() ? 'soft ' : '',
@@ -44,17 +49,22 @@ class ReadoutReport extends \maxvu\bjsim3\Report {
     }
 
     public function onSolicitInsurance ( Round $round ) {
-        echo "dealer solicits insurance\n";
+        
     }
 
     public function onInsuranceBetsPlaced ( Round $round ) {
         echo "all insurance bets placed.\n";
         foreach ( $round->getTurns() as $turn ) {
-            if ( $turn->getInsurance() ) {
+            if ( $turn->getInsurance()->gt( 0.0 ) ) {
                 printf(
                     "%s insures for %.2f\n",
                     $turn->getPlayer()->getName(),
                     $turn->getInsurance()->get()
+                );
+            } else {
+                printf(
+                    "%s refuses insurance.\n",
+                    $turn->getPlayer()->getName()
                 );
             }
         }
@@ -105,6 +115,13 @@ class ReadoutReport extends \maxvu\bjsim3\Report {
         Player $player,
         Hand $hand
     ) {
+        if ( $hand->isBlackjack() ) {
+            printf(
+                "%s is dealt blackjack: %s\n",
+                $player->getName(),
+                $hand
+            );
+        }
         printf(
             "%s opens with a %s\n",
             $player->getName(),
@@ -198,11 +215,11 @@ class ReadoutReport extends \maxvu\bjsim3\Report {
     }
 
     public function onRoundEnd ( Round $round ) {
-
+        echo "round end\n";
     }
 
     public function onShuffle ( Round $round ) {
-
+        echo "dealer shuffles the deck\n";
     }
 
 };

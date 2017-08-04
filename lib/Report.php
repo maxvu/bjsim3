@@ -53,6 +53,19 @@ abstract class Report {
 
     }
 
+    public function onTurnBegin (
+
+    ) {
+
+    }
+
+    public function onTurnEnd (
+        Round $round,
+        Turn $turn
+    ) {
+
+    }
+
     public function onHandBegin (
         Round $round,
         Player $player,
@@ -79,7 +92,7 @@ abstract class Report {
         Hand $handAfter,
         int $play
     ) {
-        echo "report::ondealerhandplay\n";
+        
     }
 
     public function onDealerHandEnd ( Round $round, Hand $hand ) {
