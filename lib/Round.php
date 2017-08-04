@@ -75,13 +75,15 @@ class Round {
         if ( $peekTen || $peekAce ) {
             $this->solicitInsurance();
             if ( $this->dealerHand->isBlackjack() ) {
-                $this->table->getReport()->onPeek( true );
+                $this->table->getReport()->onPeek( $this, true );
                 $this->resolveInsurance();
-                $this->resolveBets();
+                foreach ( $this->turns as $turn ) {
+                    $this->resolveTurn( $turn );
+                }
                 $this->table->getReport()->onRoundEnd( $this );
                 return $this;
             } else {
-                $this->table->getReport()->onPeek( false );
+                $this->table->getReport()->onPeek( $this, false );
             }
         }
         foreach ( $this->turns as $turn ) {
@@ -91,7 +93,9 @@ class Round {
             $this->playDealerHand();
         }
         $this->table->getReport()->onHandsPlayed( $this );
-        $this->resolveBets();
+        foreach ( $this->turns as $turn ) {
+            $this->resolveTurn( $turn );
+        }
         $this->resolveInsurance();
         $this->table->getReport()->onRoundEnd( $this );
         return $this;
@@ -323,58 +327,117 @@ class Round {
         return $this;
     }
 
-    public function resolveBets () {
+    public function resolveTurn ( Turn $turn ) {
         $blackjackPayout = $this->table->getRules()[ 'game.blackjack-payout' ];
-        foreach ( $this->turns as $turn ) {
-            $player = $turn->getPlayer();
-            foreach ( $turn->getAllHands() as $hand ) {
+        $loseTies = $this->table->getRules()[ 'dealer.wins-ties' ];
+        $dealerHand = $this->dealerHand;
+        foreach ( $turn->getAllHands() as $hand ) {
+            $myBest = $hand->getBestValue();
+            $dealerBest = $dealerHand->getBestValue();
+            $myBj = $hand->isBlackjack();
+            $dealerBj = $dealerHand->isBlackjack();
+            $outcomeLoss = (
+                $hand->isBust() ||
+                ( $myBest < $dealerBest ) ||
+                ( $loseTies && ( $myBest === $dealerBest ) ) ||
+                ( $dealerBj && !$myBj )
+            );
+            $outcomeBlackjack = $myBj && !$dealerBj;
+            $outcomePush = (
+                !$outcomeLoss && !$outcomeBlackjack && (
+                    ( $myBj && $dealerBj ) ||
+                    ( !$loseTies && ( $myBest === $dealerBest ) )
+                )
+            );
+            $outcomeWin = (
+                !$outcomeLoss &&
+                !$outcomeBlackjack &&
+                $myBest > $dealerBest
+            );
+
+            // sanity check: only one of these outcomes, right?
+            $outcomesTriggered = 0;
+            foreach ( [
+                $outcomeLoss,
+                $outcomeWin,
+                $outcomeBlackjack,
+                $outcomePush
+            ] as $outcome ) {
+                if ( $outcome )
+                    $outcomesTriggered++;
+            }
+            if ( $outcomesTriggered !== 1 ) {
+                throw new \Exception(
+                    "Multiple outcomes seen: $hand vs. $dealerHand\n"
+                );
+            }
+
+            if ( $outcomeBlackjack ) {
                 $bet = $hand->getBets()[ 0 ];
-                if ( $hand->isBlackjack() ) {
-                    $payout = $bet->mul( $blackjackPayout )->add( $bet );
-                    $player->give( $payout );
+                $payout = $bet->mul( $blackjackPayout );
+                $turn->getPlayer()->give( $bet )->give( $payout );
+                $this->table->getReport()->onHandBlackjack(
+                    $turn,
+                    $hand,
+                    $dealerHand,
+                    $bet,
+                    $payout
+                );
+                $this->table->getReport()->onBetPayout(
+                    $this,
+                    $turn->getPlayer(),
+                    $bet,
+                    $payout
+                );
+            } else if ( $outcomeWin ) {
+                $totalBet = new Amount( 0.0 );
+                foreach ( $hand->getBets() as $bet ) {
+                    $totalBet = $totalBet->add( $bet );
+                    $payout = $bet;
+                    $turn->getPlayer()->give( $bet )->give( $payout );
                     $this->table->getReport()->onBetPayout(
                         $this,
-                        $player,
+                        $turn->getPlayer(),
                         $bet,
                         $payout
                     );
-                    continue;
                 }
-                $dealerScore = $this->dealerHand->getBestValue();
-                $playerScore = $hand->getBestValue();
-                $dealerWinsTies = $this->table->getRules()[ 'dealer.wins-ties' ];
-                if ( $playerScore > $dealerScore ) {
-                    foreach ( $hand->getBets() as $bet ) {
-                        $player->give( $bet->mul( 2 ) );
-                        $this->table->getReport()->onBetPayout(
-                            $this,
-                            $player,
-                            $bet,
-                            $bet->mul( 2 )
-                        );
-                    }
-                } else if (
-                    $playerScore < $dealerScore || (
-                        $playerScore === $dealerScore &&
-                        $dealerWinsTies
-                    )
-                ) {
-                    foreach ( $hand->getBets() as $bet ) {
-                        $this->table->getReport()->onBetClaim(
-                            $this,
-                            $player,
-                            $bet
-                        );
-                    }
-
-                } else if ( $playerScore === $dealerScore ) {
-                    // push
-                    foreach ( $hand->getBets() as $bet )
-                        $player->give( $bet );
+                $this->table->getReport()->onHandWin(
+                    $turn,
+                    $hand,
+                    $dealerHand,
+                    $totalBet
+                );
+            } else if ( $outcomePush ) {
+                $totalBet = new Amount( 0.0 );
+                foreach ( $hand->getBets() as $bet ) {
+                    $totalBet = $totalBet->add( $bet );
+                    $turn->getPlayer()->give( $bet );
                 }
+                $this->table->getReport()->onHandPush(
+                    $turn,
+                    $hand,
+                    $dealerHand,
+                    $totalBet
+                );
+            } else {
+                $totalBet = new Amount( 0.0 );
+                foreach ( $hand->getBets() as $bet ) {
+                    $totalBet = $totalBet->add( $bet );
+                    $this->table->getReport()->onBetClaim(
+                        $this,
+                        $turn->getPlayer(),
+                        $bet
+                    );
+                }
+                $this->table->getReport()->onHandLoss(
+                    $turn,
+                    $hand,
+                    $dealerHand,
+                    $totalBet
+                );
             }
         }
-        return $this;
     }
 
 };

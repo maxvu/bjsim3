@@ -52,9 +52,9 @@ class AggregateReport extends Report {
         return $this;
     }
 
-    public function onPeek ( bool $dealerBlackjack ) {
+    public function onPeek ( Round $round, bool $dealerBlackjack ) {
         foreach ( $this->subreports as $report )
-            $report->onPeek( $dealerBlackjack );
+            $report->onPeek( $round, $dealerBlackjack );
         return $this;
     }
 
@@ -107,6 +107,51 @@ class AggregateReport extends Report {
     ) {
         foreach ( $this->subreports as $report )
             $report->onHandPlay( $round, $player, $handAfter, $play );
+        return $this;
+    }
+
+    public function onHandBlackjack (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet,
+        Amount $payout
+    ) {
+        foreach ( $this->subreports as $report )
+            $report->onHandBlackjack( $turn, $player, $dealer, $bet, $payout );
+        return $this;
+    }
+
+    public function onHandWin (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        foreach ( $this->subreports as $report )
+            $report->onHandWin( $turn, $player, $dealer, $bet );
+        return $this;
+    }
+
+    public function onHandPush (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        foreach ( $this->subreports as $report )
+            $report->onHandPush( $turn, $player, $dealer, $bet );
+        return $this;
+    }
+
+    public function onHandLoss (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        foreach ( $this->subreports as $report )
+            $report->onHandLoss( $turn, $player, $dealer, $bet );
         return $this;
     }
 

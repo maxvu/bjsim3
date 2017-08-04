@@ -13,8 +13,6 @@ class Table {
     protected $players;
     protected $reports;
 
-    // TODO: dealer draws but doesn't notify player strategies
-
     public function __construct (
         RuleSet $rules,
         Settings $settings,

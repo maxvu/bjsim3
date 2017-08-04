@@ -31,7 +31,7 @@ abstract class Report {
 
     }
 
-    public function onPeek ( bool $dealerBlackjack ) {
+    public function onPeek ( Round $round, bool $dealerBlackjack ) {
 
     }
 
@@ -55,7 +55,7 @@ abstract class Report {
         Round $round,
         Player $player,
         Amount $originalBet,
-        Amount $totalPayout
+        Amount $payout
     ) {
 
     }
@@ -86,6 +86,43 @@ abstract class Report {
         Player $player,
         Hand $handAfter,
         int $play
+    ) {
+
+    }
+
+    public function onHandBlackjack (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet,
+        Amount $payout
+    ) {
+
+    }
+
+    public function onHandWin (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+
+    }
+
+    public function onHandPush (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+
+    }
+
+    public function onHandLoss (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
     ) {
 
     }

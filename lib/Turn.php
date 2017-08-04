@@ -39,8 +39,6 @@ class Turn {
     }
 
     public function & getHand () {
-        if ( $this->isOver() )
-            return null;
         return $this->openHands[ sizeof( $this->openHands ) - 1 ];
     }
 

@@ -70,11 +70,21 @@ class ReadoutReport extends Report {
         }
     }
 
-    public function onPeek ( bool $dealerBlackjack ) {
-        printf(
-            "dealer peeks -- %s\n",
-            $dealerBlackjack ? 'blackjack.' : 'no blackjack.'
-        );
+    public function onPeek ( Round $round, bool $dealerBlackjack ) {
+        if ( !$dealerBlackjack ) {
+            echo "dealer peeks -- no blackjack.\n";
+        } else {
+            echo "dealer peeks blackjack.\n";
+            foreach ( $round->getTurns() as $turn ) {
+                $playerName = $turn->getPlayer()->getName();
+                $hand = $turn->getHand();
+                if ( $turn->getHand()->isBlackjack() ) {
+                    echo "{$playerName} pushes with their own blackjack: $hand.\n";
+                } else {
+                    echo "{$playerName} loses with a $hand.\n";
+                }
+            }
+        }
     }
 
     public function onBetPlace (
@@ -90,11 +100,7 @@ class ReadoutReport extends Report {
         Player $player,
         Amount $originalBet
     ) {
-        printf(
-            "house claims %s's bet of %.2f\n",
-            $player->getName(),
-            $originalBet->get()
-        );
+
     }
 
     public function onBetPayout (
@@ -103,11 +109,7 @@ class ReadoutReport extends Report {
         Amount $originalBet,
         Amount $totalPayout
     ) {
-        printf(
-            "house pays out %.2f to %s\n",
-            $totalPayout->get(),
-            $player->getName()
-        );
+
     }
 
     public function onHandBegin (
@@ -204,6 +206,73 @@ class ReadoutReport extends Report {
             );
         }
 
+    }
+
+    public function onHandBlackjack (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet,
+        Amount $payout
+    ) {
+        printf(
+            "%s wins blackjack %s, winning %.2f\n",
+            $turn->getPlayer()->getName(),
+            $player,
+            $payout->get()
+        );
+    }
+
+    public function onHandWin (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        printf(
+            "%s's %s beats dealer's %s, winning %.2f\n",
+            $turn->getPlayer()->getName(),
+            $this->printHand( $player ),
+            $this->printHand( $dealer ),
+            $bet->get()
+        );
+    }
+
+    public function onHandPush (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        printf(
+            "%s's %s pushes with dealer's %s\n",
+            $turn->getPlayer()->getName(),
+            $this->printHand( $player ),
+            $this->printHand( $dealer )
+        );
+    }
+
+    public function onHandLoss (
+        Turn $turn,
+        Hand $player,
+        Hand $dealer,
+        Amount $bet
+    ) {
+        if ( $player->isBust() ) {
+            printf(
+                "%s busted, loses %.2f",
+                $turn->getPlayer()->getName(),
+                $bet->get()
+            );
+        } else {
+            printf(
+                "%s's %s loses to dealer's %s, losing %.2f\n",
+                $turn->getPlayer()->getName(),
+                $this->printHand( $player ),
+                $this->printHand( $dealer ),
+                $bet->get()
+            );
+        }
     }
 
     public function onDealerHandEnd ( Round $round, Hand $hand ) {
