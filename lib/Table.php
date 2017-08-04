@@ -2,6 +2,7 @@
 
 namespace maxvu\bjsim3;
 
+use maxvu\bjsim3\Report\Report as Report;
 use maxvu\bjsim3\Report\AggregateReport as AggregateReport;
 
 class Table {

@@ -10,7 +10,7 @@ use \maxvu\bjsim3\Round as Round;
 use \maxvu\bjsim3\Player as Player;
 use \maxvu\bjsim3\HandDecision as HandDecision;
 
-class ReadoutReport extends \maxvu\bjsim3\Report {
+class ReadoutReport extends Report {
 
     private function printHand ( Hand $hand ) {
         if ( $hand->isBlackjack() )
@@ -49,7 +49,7 @@ class ReadoutReport extends \maxvu\bjsim3\Report {
     }
 
     public function onSolicitInsurance ( Round $round ) {
-        
+
     }
 
     public function onInsuranceBetsPlaced ( Round $round ) {

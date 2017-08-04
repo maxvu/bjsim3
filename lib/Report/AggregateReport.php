@@ -9,9 +9,7 @@ use \maxvu\bjsim3\Round as Round;
 use \maxvu\bjsim3\Player as Player;
 use \maxvu\bjsim3\HandDecision as HandDecision;
 
-use \maxvu\bjsim3\Report as Report;
-
-class AggregateReport extends \maxvu\bjsim3\Report {
+class AggregateReport extends Report {
 
     protected $subreports;
 

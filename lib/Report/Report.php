@@ -1,6 +1,13 @@
 <?php
 
-namespace maxvu\bjsim3;
+namespace maxvu\bjsim3\Report;
+
+use \maxvu\bjsim3\Amount as Amount;
+use \maxvu\bjsim3\Hand as Hand;
+use \maxvu\bjsim3\Turn as Turn;
+use \maxvu\bjsim3\Round as Round;
+use \maxvu\bjsim3\Player as Player;
+use \maxvu\bjsim3\HandDecision as HandDecision;
 
 abstract class Report {
 
@@ -92,7 +99,7 @@ abstract class Report {
         Hand $handAfter,
         int $play
     ) {
-        
+
     }
 
     public function onDealerHandEnd ( Round $round, Hand $hand ) {
